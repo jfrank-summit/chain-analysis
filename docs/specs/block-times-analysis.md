@@ -60,13 +60,9 @@ Compute and analyze inter-block times for the consensus chain and the Auto-EVM d
 ```ts
 import { ApiPromise, WsProvider } from "@polkadot/api";
 
-const connect = async (url: string) =>
-  ApiPromise.create({ provider: new WsProvider(url) });
+const connect = async (url: string) => ApiPromise.create({ provider: new WsProvider(url) });
 
-const getBlockTimestampMs = async (
-  api: ApiPromise,
-  hash: string
-): Promise<number> => {
+const getBlockTimestampMs = async (api: ApiPromise, hash: string): Promise<number> => {
   const at = await api.at(hash);
   const now = await at.query.timestamp.now();
   return Number(now.toBigInt()); // Moment is typically milliseconds
@@ -75,7 +71,7 @@ const getBlockTimestampMs = async (
 // Helpers (placeholders; implementations are chain-specific)
 const detectSegmentHeaderPresence = async (
   api: ApiPromise,
-  hash: string
+  hash: string,
 ): Promise<{ contains: boolean; bundleCount: number }> => {
   // Inspect events/extrinsics at block 'hash' to determine presence and count
   return { contains: false, bundleCount: 0 };
@@ -83,7 +79,7 @@ const detectSegmentHeaderPresence = async (
 
 const resolveConsensusHashForDomain = async (
   api: ApiPromise,
-  domainHash: string
+  domainHash: string,
 ): Promise<string | null> => {
   // Inspect domain header digest or consult consensus-side events mapping
   return null;
@@ -109,10 +105,7 @@ const streamDeltas = async (api: ApiPromise, chain: string) => {
           ingestion_ts_ms: Date.now(),
         };
         if (chain === "consensus") {
-          const { contains, bundleCount } = await detectSegmentHeaderPresence(
-            api,
-            hash
-          );
+          const { contains, bundleCount } = await detectSegmentHeaderPresence(api, hash);
           enqueueForPersist({
             ...base,
             contained_store_segment_headers: contains,

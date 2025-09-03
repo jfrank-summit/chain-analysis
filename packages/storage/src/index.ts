@@ -1,6 +1,7 @@
-import Database from "duckdb";
 import fs from "node:fs";
 import path from "node:path";
+
+import Database from "duckdb";
 
 export type BlockTimeRow = {
   chain: string;
@@ -29,18 +30,13 @@ export const openDuckDb = (dataDir: string) => {
 export const writeBlockTimesBatch = async (
   conn: Database.Connection,
   dataDir: string,
-  rows: BlockTimeRow[]
+  rows: BlockTimeRow[],
 ) => {
   if (rows.length === 0) return;
   const tmpTable = "tmp_block_times";
   const chain = rows[0].chain;
   const date = new Date(rows[0].timestamp_ms).toISOString().slice(0, 10);
-  const outDir = path.join(
-    dataDir,
-    "block_times",
-    `chain=${chain}`,
-    `date=${date}`
-  );
+  const outDir = path.join(dataDir, "block_times", `chain=${chain}`, `date=${date}`);
   ensureDir(outDir);
 
   await new Promise<void>((resolve, reject) =>
@@ -49,14 +45,14 @@ export const writeBlockTimesBatch = async (
         SELECT * FROM read_json_auto(?)
       )`,
       [JSON.stringify(rows)],
-      (err) => (err ? reject(err) : resolve())
-    )
+      (err) => (err ? reject(err) : resolve()),
+    ),
   );
 
   const outFile = path.join(outDir, `part-${Date.now()}.parquet`);
   await new Promise<void>((resolve, reject) =>
     conn.run(`COPY ${tmpTable} TO ? (FORMAT PARQUET)`, [outFile], (err) =>
-      err ? reject(err) : resolve()
-    )
+      err ? reject(err) : resolve(),
+    ),
   );
 };

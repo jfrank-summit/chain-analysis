@@ -9,12 +9,10 @@ We will ingest block-level telemetry (initially block timestamps and inter-block
 ### Options
 
 1. SQLite
-
    - Pros: Simple, zero-ops, great for local dev. WAL mode improves concurrency.
    - Cons: Single-writer; high parallel write throughput requires careful batching/queuing. Less ideal for multi-process or high sustained ingest.
 
 2. Postgres (optionally with TimescaleDB)
-
    - Pros: Robust concurrent writes, transactions, indexes, mature ecosystem, flexible queries. Timeseries extensions add compression/rollups.
    - Cons: Requires running a server; more ops overhead for local and CI.
 

@@ -1,11 +1,9 @@
-import { loadConfig } from "@chain-analysis/config";
 import { connect, getBlockTimestampMs } from "@chain-analysis/chain";
-import {
-  BlockTimeRow,
-  openDuckDb,
-  writeBlockTimesBatch,
-} from "@chain-analysis/storage";
+import { loadConfig } from "@chain-analysis/config";
+import { openDuckDb, writeBlockTimesBatch } from "@chain-analysis/storage";
 import pino from "pino";
+
+import type { BlockTimeRow } from "@chain-analysis/storage";
 
 const main = async () => {
   const cfg = loadConfig();
@@ -45,10 +43,7 @@ const main = async () => {
         await flush();
       }
     } else if (last && parentHash !== last.hash) {
-      logger.warn(
-        { last: last.hash, parentHash, hash },
-        "reorg edge detected; skipping delta"
-      );
+      logger.warn({ last: last.hash, parentHash, hash }, "reorg edge detected; skipping delta");
     }
     last = { hash, ts };
   });
@@ -57,7 +52,6 @@ const main = async () => {
 };
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });

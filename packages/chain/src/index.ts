@@ -6,10 +6,7 @@ export const connect = async (url: string): Promise<ApiPromise> => {
   return api;
 };
 
-export const getBlockTimestampMs = async (
-  api: ApiPromise,
-  hash: string
-): Promise<number> => {
+export const getBlockTimestampMs = async (api: ApiPromise, hash: string): Promise<number> => {
   const at = await api.at(hash);
   const now = await at.query.timestamp.now();
   return Number(now.toBigInt());
