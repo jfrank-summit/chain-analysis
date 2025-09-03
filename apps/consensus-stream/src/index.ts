@@ -17,12 +17,17 @@ const main = async () => {
 
   let last: { hash: string; ts: number } | null = null;
   const buffer: BlockTimeRow[] = [];
+  let lastFlush = Date.now();
 
-  const flush = async () => {
+  const flush = async (force = false) => {
+    const dueByCount = buffer.length >= cfg.WRITE_BATCH_ROWS;
+    const dueByTime = Date.now() - lastFlush >= cfg.WRITE_BATCH_MS;
+    if (!force && !dueByCount && !dueByTime) return;
     if (buffer.length === 0) return;
     const toWrite = buffer.splice(0, buffer.length);
     await writeBlockTimesBatch(conn, cfg.DATA_DIR, toWrite);
     logger.info({ count: toWrite.length }, "flushed batch");
+    lastFlush = Date.now();
   };
 
   await api.rpc.chain.subscribeNewHeads(async (head) => {
@@ -40,7 +45,7 @@ const main = async () => {
         ingestion_ts_ms: Date.now(),
       };
       buffer.push(row);
-      if (buffer.length >= 1000) {
+      if (buffer.length >= cfg.WRITE_BATCH_ROWS || Date.now() - lastFlush >= cfg.WRITE_BATCH_MS) {
         await flush();
       }
     } else if (last && parentHash !== last.hash) {
@@ -49,7 +54,7 @@ const main = async () => {
     last = { hash, ts };
   });
 
-  setInterval(() => void flush(), 2000);
+  setInterval(() => void flush(false), 2000);
 };
 
 main().catch((err) => {

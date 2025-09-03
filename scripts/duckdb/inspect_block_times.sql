@@ -13,6 +13,8 @@ SELECT
   approx_quantile(delta_since_parent_ms, 0.5) AS p50_ms,
   approx_quantile(delta_since_parent_ms, 0.9) AS p90_ms,
   approx_quantile(delta_since_parent_ms, 0.99) AS p99_ms,
+  mean(delta_since_parent_ms) AS mean_ms,
+  stddev(delta_since_parent_ms) AS stddev_ms,
   max(delta_since_parent_ms) AS max_ms
 FROM t;
 
