@@ -7,7 +7,7 @@
   ],
   "packageManager": "yarn@4.3.1",
   "scripts": {
-    "build": "yarn workspaces foreach -t run build",
+    "build": "tsc -b",
     "dev": "yarn workspace @chain-analysis/consensus-stream dev",
     "start": "yarn workspace @chain-analysis/consensus-stream start",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
