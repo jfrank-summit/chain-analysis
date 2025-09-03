@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { connect, getBlockTimestampMs } from "@chain-analysis/chain";
 import { loadConfig } from "@chain-analysis/config";
 import { openDuckDb, writeBlockTimesBatch } from "@chain-analysis/storage";

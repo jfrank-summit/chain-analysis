@@ -7,8 +7,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "dev": "tsx watch src/index.ts",
-    "start": "node --enable-source-maps dist/index.js"
+    "dev": "DOTENV_CONFIG_PATH=../../.env tsx watch src/index.ts",
+    "start": "DOTENV_CONFIG_PATH=../../.env node --enable-source-maps dist/index.js"
   },
   "dependencies": {
     "@chain-analysis/chain": "workspace:*",
