@@ -15,6 +15,8 @@ Purpose: Explore and implement analysis for a Substrate-based blockchain with a 
     - [Milestone 1](plan/milestones/milestone-1.md)
     - [Milestone 2](plan/milestones/milestone-2.md)
     - [Milestone 3](plan/milestones/milestone-3.md)
+- Runbooks
+  - [Consensus Stream](runbook/consensus-stream.md)
 
 ### Current Status
 
