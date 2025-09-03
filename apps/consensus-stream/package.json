@@ -1,0 +1,19 @@
+{
+  "name": "@chain-analysis/consensus-stream",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/index.ts",
+    "start": "node --enable-source-maps dist/index.js"
+  },
+  "dependencies": {
+    "@chain-analysis/chain": "workspace:*",
+    "@chain-analysis/config": "workspace:*",
+    "@chain-analysis/storage": "workspace:*",
+    "pino": "^9.2.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/config" },
+    { "path": "packages/chain" },
+    { "path": "packages/storage" },
+    { "path": "apps/consensus-stream" }
+  ]
+}
