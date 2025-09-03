@@ -20,6 +20,8 @@ Compute and analyze inter-block times for the consensus chain and the Auto-EVM d
 - Per-chain distribution of deltas (p50, p90, p99, max) over time windows.
 - Rolling averages and jitter (stddev) per hour/day.
 - Outliers: deltas above expected slot time × threshold.
+- Segment-aware distributions (consensus): compare `delta_ms` where `contained_store_segment_headers` is true vs false.
+- Cross-chain latency (domain vs consensus): distribution of `timestamp_ms(domain) - timestamp_ms(consensus_source)` once `consensus_block_hash` is resolved.
 
 ### Canonical Chain Handling
 
@@ -39,12 +41,19 @@ Compute and analyze inter-block times for the consensus chain and the Auto-EVM d
      - Subscribe to new heads.
      - For each head `H`, fetch timestamp at `H` via `api.at(H.hash)` → `query.timestamp.now()`.
      - Retrieve parent timestamp (from cache or query).
-     - If `parent_of(H) != last_seen_head`, mark `is_reorg_edge = true` and skip delta emit for this pair.
-     - Otherwise compute `delta_ms` and enqueue a row for storage.
+     - If `parent_of(H) != last_seen_head`, treat as a reorg edge and skip delta emit for this pair.
+     - Otherwise compute `delta_ms` and enrich per-chain before enqueue:
+       - Consensus: detect `contained_store_segment_headers` and count related bundles as `bundle_count`.
+       - Auto-EVM: resolve `consensus_block_hash` for this domain block (via domain header digest or consensus-side events mapping).
    - Backfill mode:
      - Determine confirmed head at depth `K` (K blocks before the tip).
      - Walk from an older starting point up to the confirmed head.
      - For each consecutive pair, compute `delta_ms` and batch writes.
+
+### Domain↔Consensus Mapping
+
+- Read domain header digest logs (or a runtime API) that include the source consensus block hash/number for each domain block.
+- Resolve `consensus_block_hash` inline during streaming/backfill when possible. If unresolved, set `null` and log for later reconciliation (no KV in Phase 1).
 
 ### Pseudocode (TypeScript)
 
@@ -63,6 +72,23 @@ const getBlockTimestampMs = async (
   return Number(now.toBigInt()); // Moment is typically milliseconds
 };
 
+// Helpers (placeholders; implementations are chain-specific)
+const detectSegmentHeaderPresence = async (
+  api: ApiPromise,
+  hash: string
+): Promise<{ contains: boolean; bundleCount: number }> => {
+  // Inspect events/extrinsics at block 'hash' to determine presence and count
+  return { contains: false, bundleCount: 0 };
+};
+
+const resolveConsensusHashForDomain = async (
+  api: ApiPromise,
+  domainHash: string
+): Promise<string | null> => {
+  // Inspect domain header digest or consult consensus-side events mapping
+  return null;
+};
+
 // Streaming outline (single chain)
 const streamDeltas = async (api: ApiPromise, chain: string) => {
   let last: { hash: string; ts: number } | null = null;
@@ -73,7 +99,7 @@ const streamDeltas = async (api: ApiPromise, chain: string) => {
       const parentHash = head.parentHash.toHex();
       if (parentHash === last.hash) {
         const delta = ts - last.ts;
-        enqueueForPersist({
+        const base = {
           chain,
           block_number: head.number.toNumber(),
           hash,
@@ -81,7 +107,26 @@ const streamDeltas = async (api: ApiPromise, chain: string) => {
           timestamp_ms: ts,
           delta_since_parent_ms: delta,
           ingestion_ts_ms: Date.now(),
-        });
+        };
+        if (chain === "consensus") {
+          const { contains, bundleCount } = await detectSegmentHeaderPresence(
+            api,
+            hash
+          );
+          enqueueForPersist({
+            ...base,
+            contained_store_segment_headers: contains,
+            bundle_count: bundleCount,
+          });
+        } else if (chain === "auto-evm") {
+          const consensusHash = await resolveConsensusHashForDomain(api, hash);
+          enqueueForPersist({
+            ...base,
+            consensus_block_hash: consensusHash,
+          });
+        } else {
+          enqueueForPersist(base);
+        }
       } else {
         // Reorg edge: parent mismatch; skip delta emit for this head
         // Optionally emit a diagnostic record if needed by the pipeline

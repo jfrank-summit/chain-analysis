@@ -128,9 +128,9 @@ Partitioning:
 
 ### Milestones
 
-- Setup environment, DuckDB prototype for Parquet write, metadata/timestamp extraction, basic stream for one chain.
-- Dual-chain support, backfill mode with K confirmations, partitioned writes with rotation.
-- Reporting queries, validation suite, perf tuning, docs/runbook.
+- Setup environment, DuckDB prototype for Parquet write, metadata/timestamp extraction, basic stream for one chain. See [Milestone 1](milestones/milestone-1.md).
+- Dual-chain support, backfill mode with K confirmations, partitioned writes with rotation. See [Milestone 2](milestones/milestone-2.md).
+- Reporting queries, validation suite, perf tuning, docs/runbook. See [Milestone 3](milestones/milestone-3.md).
 
 ### Open Questions
 

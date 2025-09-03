@@ -11,6 +11,10 @@ Purpose: Explore and implement analysis for a Substrate-based blockchain with a 
   - [Block Times Analysis (Consensus + Auto-EVM)](specs/block-times-analysis.md)
 - Plans
   - [Phase 1: Block Times](plan/phase-1-block-times.md)
+  - Milestones
+    - [Milestone 1](plan/milestones/milestone-1.md)
+    - [Milestone 2](plan/milestones/milestone-2.md)
+    - [Milestone 3](plan/milestones/milestone-3.md)
 
 ### Current Status
 
