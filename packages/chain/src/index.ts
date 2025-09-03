@@ -8,7 +8,6 @@ export const connect = async (url: string): Promise<ApiPromise> => {
 };
 
 export const getBlockTimestampMs = async (api: ApiPromise, hash: string): Promise<number> => {
-  const at = await api.at(hash);
-  const now = await at.query.timestamp.now();
+  const now = await (api.query.timestamp.now as any).at(hash);
   return now.toNumber();
 };

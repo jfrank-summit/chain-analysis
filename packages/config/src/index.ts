@@ -7,6 +7,9 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   WRITE_BATCH_ROWS: z.coerce.number().int().positive().default(5000),
   WRITE_BATCH_MS: z.coerce.number().int().positive().default(60000),
+  K_CONSENSUS: z.coerce.number().int().nonnegative().default(64),
+  BACKFILL_START: z.coerce.number().int().nonnegative().optional(),
+  BACKFILL_END: z.coerce.number().int().nonnegative().optional(),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

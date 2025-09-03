@@ -5,6 +5,17 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"@chain-analysis/backfill-consensus@workspace:apps/backfill-consensus":
+  version: 0.0.0-use.local
+  resolution: "@chain-analysis/backfill-consensus@workspace:apps/backfill-consensus"
+  dependencies:
+    "@chain-analysis/chain": "workspace:*"
+    "@chain-analysis/config": "workspace:*"
+    "@chain-analysis/storage": "workspace:*"
+    pino: "npm:^9.2.0"
+  languageName: unknown
+  linkType: soft
+
 "@chain-analysis/chain@workspace:*, @chain-analysis/chain@workspace:packages/chain":
   version: 0.0.0-use.local
   resolution: "@chain-analysis/chain@workspace:packages/chain"
@@ -19,6 +30,17 @@ __metadata:
   dependencies:
     dotenv: "npm:^16.4.5"
     zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
+"@chain-analysis/consensus-backfill@workspace:apps/consensus-backfill":
+  version: 0.0.0-use.local
+  resolution: "@chain-analysis/consensus-backfill@workspace:apps/consensus-backfill"
+  dependencies:
+    "@chain-analysis/chain": "workspace:*"
+    "@chain-analysis/config": "workspace:*"
+    "@chain-analysis/storage": "workspace:*"
+    pino: "npm:^9.2.0"
   languageName: unknown
   linkType: soft
 
