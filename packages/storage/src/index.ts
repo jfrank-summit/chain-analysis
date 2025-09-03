@@ -33,26 +33,52 @@ export const writeBlockTimesBatch = async (
   rows: BlockTimeRow[],
 ) => {
   if (rows.length === 0) return;
-  const tmpTable = "tmp_block_times";
   const chain = rows[0].chain;
   const date = new Date(rows[0].timestamp_ms).toISOString().slice(0, 10);
   const outDir = path.join(dataDir, "block_times", `chain=${chain}`, `date=${date}`);
   ensureDir(outDir);
 
-  await new Promise<void>((resolve, reject) =>
-    conn.run(
-      `CREATE OR REPLACE TEMP TABLE ${tmpTable} AS SELECT * FROM (
-        SELECT * FROM read_json_auto(?)
-      )`,
-      [JSON.stringify(rows)],
-      (err) => (err ? reject(err) : resolve()),
-    ),
+  const header = [
+    "chain",
+    "block_number",
+    "hash",
+    "parent_hash",
+    "timestamp_ms",
+    "delta_since_parent_ms",
+    "ingestion_ts_ms",
+  ].join(",");
+
+  const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+  const csvLines = rows.map((r) =>
+    [
+      escape(r.chain),
+      r.block_number,
+      escape(r.hash),
+      escape(r.parent_hash),
+      r.timestamp_ms,
+      r.delta_since_parent_ms,
+      r.ingestion_ts_ms,
+    ].join(","),
   );
 
+  const tmpCsv = path.join(outDir, `.tmp-${process.pid}-${Date.now()}.csv`);
+  const content = `${header}\n${csvLines.join("\n")}`;
+  fs.writeFileSync(tmpCsv, content, { encoding: "utf8" });
+
   const outFile = path.join(outDir, `part-${Date.now()}.parquet`);
-  await new Promise<void>((resolve, reject) =>
-    conn.run(`COPY ${tmpTable} TO ? (FORMAT PARQUET)`, [outFile], (err) =>
-      err ? reject(err) : resolve(),
-    ),
-  );
+  try {
+    const tmpCsvAbs = path.resolve(tmpCsv);
+    const outFileAbs = path.resolve(outFile);
+    const esc = (p: string) => p.replace(/'/g, "''");
+    const sql = `COPY (SELECT * FROM read_csv_auto('${esc(tmpCsvAbs)}', HEADER=TRUE)) TO '${esc(outFileAbs)}' (FORMAT PARQUET)`;
+    await new Promise<void>((resolve, reject) =>
+      conn.run(sql, (err) => (err ? reject(err) : resolve())),
+    );
+  } finally {
+    try {
+      fs.unlinkSync(tmpCsv);
+    } catch {
+      // ignore
+    }
+  }
 };
