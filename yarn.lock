@@ -5,17 +5,6 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@chain-analysis/backfill-consensus@workspace:apps/backfill-consensus":
-  version: 0.0.0-use.local
-  resolution: "@chain-analysis/backfill-consensus@workspace:apps/backfill-consensus"
-  dependencies:
-    "@chain-analysis/chain": "workspace:*"
-    "@chain-analysis/config": "workspace:*"
-    "@chain-analysis/storage": "workspace:*"
-    pino: "npm:^9.2.0"
-  languageName: unknown
-  linkType: soft
-
 "@chain-analysis/chain@workspace:*, @chain-analysis/chain@workspace:packages/chain":
   version: 0.0.0-use.local
   resolution: "@chain-analysis/chain@workspace:packages/chain"
@@ -47,6 +36,17 @@ __metadata:
 "@chain-analysis/consensus-stream@workspace:apps/consensus-stream":
   version: 0.0.0-use.local
   resolution: "@chain-analysis/consensus-stream@workspace:apps/consensus-stream"
+  dependencies:
+    "@chain-analysis/chain": "workspace:*"
+    "@chain-analysis/config": "workspace:*"
+    "@chain-analysis/storage": "workspace:*"
+    pino: "npm:^9.2.0"
+  languageName: unknown
+  linkType: soft
+
+"@chain-analysis/ingest@workspace:apps/ingest":
+  version: 0.0.0-use.local
+  resolution: "@chain-analysis/ingest@workspace:apps/ingest"
   dependencies:
     "@chain-analysis/chain": "workspace:*"
     "@chain-analysis/config": "workspace:*"

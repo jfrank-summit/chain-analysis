@@ -13,6 +13,15 @@ export type BlockTimeRow = {
   ingestion_ts_ms: number;
 };
 
+export type ConsensusBlockTimeRow = BlockTimeRow & {
+  contained_store_segment_headers: boolean;
+  bundle_count: number;
+};
+
+export type AutoEvmBlockTimeRow = BlockTimeRow & {
+  consensus_block_hash: string | null;
+};
+
 export const ensureDir = (dir: string) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

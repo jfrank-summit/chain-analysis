@@ -3,11 +3,13 @@ import { z } from "zod";
 
 const envSchema = z.object({
   CONSENSUS_RPC_WS: z.string().url(),
+  AUTO_EVM_RPC_WS: z.string().url().optional(),
   DATA_DIR: z.string().default("data"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   WRITE_BATCH_ROWS: z.coerce.number().int().positive().default(5000),
   WRITE_BATCH_MS: z.coerce.number().int().positive().default(60000),
   K_CONSENSUS: z.coerce.number().int().nonnegative().default(64),
+  K_AUTO_EVM: z.coerce.number().int().nonnegative().default(64),
   BACKFILL_START: z.coerce.number().int().nonnegative().optional(),
   BACKFILL_END: z.coerce.number().int().nonnegative().optional(),
 });

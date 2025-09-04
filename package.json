@@ -8,10 +8,10 @@
   "packageManager": "yarn@4.3.1",
   "scripts": {
     "build": "tsc -b",
-    "dev:stream": "tsc -b && yarn workspace @chain-analysis/consensus-stream dev",
-    "dev:backfill": "tsc -b && yarn workspace @chain-analysis/consensus-backfill dev",
-    "start:stream": "tsc -b && yarn workspace @chain-analysis/consensus-stream start",
-    "start:backfill": "tsc -b && yarn workspace @chain-analysis/consensus-backfill start",
+    "dev:stream": "tsc -b && yarn workspace @chain-analysis/ingest dev:stream",
+    "dev:backfill": "tsc -b && yarn workspace @chain-analysis/ingest dev:backfill",
+    "start:stream": "tsc -b && yarn workspace @chain-analysis/ingest start -- stream",
+    "start:backfill": "tsc -b && yarn workspace @chain-analysis/ingest start -- backfill",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "format": "prettier -w ."
   },
