@@ -22,7 +22,6 @@
   "dependencies": {
     "@chain-analysis/chain": "workspace:*",
     "@chain-analysis/config": "workspace:*",
-    "@chain-analysis/storage": "workspace:*",
-    "pino": "^9.2.0"
+    "@chain-analysis/storage": "workspace:*"
   }
 }

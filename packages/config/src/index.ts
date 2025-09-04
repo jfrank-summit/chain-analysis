@@ -1,4 +1,5 @@
 import "dotenv/config";
+import pino, { type LoggerOptions } from "pino";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -23,4 +24,21 @@ export const loadConfig = (): AppConfig => {
     throw new Error(`Invalid environment: ${issues}`);
   }
   return parsed.data;
+};
+
+export type Logger = pino.Logger;
+
+export const createLogger = (config: AppConfig = loadConfig(), overrides: LoggerOptions = {}) => {
+  const shouldPretty =
+    process.env.LOG_PRETTY === "true" ||
+    (process.env.LOG_PRETTY !== "false" &&
+      process.env.NODE_ENV !== "production" &&
+      process.stdout.isTTY);
+
+  const base: LoggerOptions = {
+    level: config.LOG_LEVEL,
+    ...(shouldPretty ? { transport: { target: "pino-pretty", options: { colorize: true } } } : {}),
+  };
+
+  return pino({ ...base, ...overrides });
 };

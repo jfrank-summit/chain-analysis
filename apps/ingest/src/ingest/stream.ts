@@ -1,13 +1,12 @@
 import { connect, getBlockTimestampMs } from "@chain-analysis/chain";
-import { loadConfig } from "@chain-analysis/config";
+import { loadConfig, createLogger, type Logger } from "@chain-analysis/config";
 import { openDuckDb, writeBlockTimesBatch, type BlockTimeRow } from "@chain-analysis/storage";
-import pino from "pino";
 
 type ChainId = "consensus" | "auto-evm";
 
 export const startStreaming = async ({ chains }: { chains: ChainId[] }) => {
   const cfg = loadConfig();
-  const logger = pino({ level: cfg.LOG_LEVEL });
+  const logger = createLogger();
   const { conn } = openDuckDb(cfg.DATA_DIR);
 
   const runChain = async (chain: ChainId) => {
@@ -28,7 +27,7 @@ export const startStreaming = async ({ chains }: { chains: ChainId[] }) => {
   await Promise.all(chains.map((c) => runChain(c)));
 };
 
-const streamConsensus = async (api: any, logger: pino.Logger, conn: any) => {
+const streamConsensus = async (api: any, logger: Logger, conn: any) => {
   const cfg = loadConfig();
   logger.info({ chain: "consensus" }, "starting stream");
   let last: { hash: string; ts: number } | null = null;
@@ -76,7 +75,7 @@ const streamConsensus = async (api: any, logger: pino.Logger, conn: any) => {
   setInterval(() => void flush(false), 2000);
 };
 
-const streamAutoEvm = async (api: any, logger: pino.Logger, conn: any) => {
+const streamAutoEvm = async (api: any, logger: Logger, conn: any) => {
   const cfg = loadConfig();
   logger.info({ chain: "auto-evm" }, "starting stream");
   let last: { hash: string; ts: number } | null = null;

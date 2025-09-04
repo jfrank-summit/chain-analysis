@@ -1,6 +1,5 @@
 import "dotenv/config";
-import { loadConfig } from "@chain-analysis/config";
-import pino from "pino";
+import { loadConfig, createLogger } from "@chain-analysis/config";
 
 import { runBackfill } from "./ingest/backfill.js";
 import { startStreaming } from "./ingest/stream.js";
@@ -18,8 +17,7 @@ const parseArgs = (argv: string[]) => {
 };
 
 const main = async () => {
-  const cfg = loadConfig();
-  const logger = pino({ level: cfg.LOG_LEVEL });
+  const logger = createLogger();
   const cmd = process.argv[2];
   const flags = parseArgs(process.argv);
 

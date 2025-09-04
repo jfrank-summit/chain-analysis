@@ -1,14 +1,13 @@
 import "dotenv/config";
 import { connect, getBlockTimestampMs } from "@chain-analysis/chain";
-import { loadConfig } from "@chain-analysis/config";
+import { loadConfig, createLogger } from "@chain-analysis/config";
 import { openDuckDb, writeBlockTimesBatch } from "@chain-analysis/storage";
-import pino from "pino";
 
 import type { BlockTimeRow } from "@chain-analysis/storage";
 
 const main = async () => {
   const cfg = loadConfig();
-  const logger = pino({ level: cfg.LOG_LEVEL });
+  const logger = createLogger();
   logger.info({ cfg }, "starting consensus-backfill");
 
   const api = await connect(cfg.CONSENSUS_RPC_WS);
