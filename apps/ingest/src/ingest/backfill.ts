@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { connect, getBlockTimestampMs } from "@chain-analysis/chain";
 import { loadConfig } from "@chain-analysis/config";
 import {
@@ -40,6 +42,25 @@ export const runBackfill = async (opts: {
 
   logger.info({ chain: opts.chain, start, end, k }, "starting backfill");
 
+  // Simple resume: if no explicit start, read max(block_number) from existing parquet and continue at max+1
+  let resumeFrom: number | undefined;
+  if (!(opts.start ?? cfg.BACKFILL_START)) {
+    const pattern = path.resolve(
+      cfg.DATA_DIR,
+      `block_times/chain=${opts.chain}/date=*/part-*.parquet`,
+    );
+    const sql = `SELECT max(block_number) AS max_bn FROM read_parquet('${pattern.replace(/'/g, "''")}')`;
+    try {
+      const rows: Array<{ max_bn: number | null }> = await new Promise((resolve, reject) =>
+        (conn as any).all(sql, (err: any, res: any) => (err ? reject(err) : resolve(res))),
+      );
+      const maxBn = rows?.[0]?.max_bn ?? null;
+      resumeFrom = maxBn == null ? undefined : maxBn + 1;
+    } catch {
+      // ignore: no files yet
+    }
+  }
+
   const buffer: Array<ConsensusBlockTimeRow | AutoEvmBlockTimeRow> = [];
   const flush = async () => {
     if (buffer.length === 0) return;
@@ -50,7 +71,13 @@ export const runBackfill = async (opts: {
 
   let prevHash: string | null = null;
   let prevTs: number | null = null;
-  for (let n = start; n <= end; n += 1) {
+  const effectiveStart = resumeFrom ?? start;
+  if (effectiveStart > end) {
+    logger.info({ chain: opts.chain, effectiveStart, end }, "nothing to backfill");
+    return;
+  }
+
+  for (let n = effectiveStart; n <= end; n += 1) {
     const blockHash = await api.rpc.chain.getBlockHash(n);
     const header = await api.rpc.chain.getHeader(blockHash);
     const hash = header.hash.toHex();

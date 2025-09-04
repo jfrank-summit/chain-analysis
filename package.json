@@ -9,9 +9,17 @@
   "scripts": {
     "build": "tsc -b",
     "dev:stream": "tsc -b && yarn workspace @chain-analysis/ingest dev:stream",
+    "dev:stream:consensus": "tsc -b && yarn workspace @chain-analysis/ingest dev:stream -- --chains=consensus",
+    "dev:stream:auto-evm": "tsc -b && yarn workspace @chain-analysis/ingest dev:stream -- --chains=auto-evm",
     "dev:backfill": "tsc -b && yarn workspace @chain-analysis/ingest dev:backfill",
+    "dev:backfill:consensus": "tsc -b && yarn workspace @chain-analysis/ingest dev:backfill -- --chain=consensus",
+    "dev:backfill:auto-evm": "tsc -b && yarn workspace @chain-analysis/ingest dev:backfill -- --chain=auto-evm",
     "start:stream": "tsc -b && yarn workspace @chain-analysis/ingest start -- stream",
     "start:backfill": "tsc -b && yarn workspace @chain-analysis/ingest start -- backfill",
+    "start:stream:consensus": "tsc -b && yarn workspace @chain-analysis/ingest start -- stream --chains=consensus",
+    "start:stream:auto-evm": "tsc -b && yarn workspace @chain-analysis/ingest start -- stream --chains=auto-evm",
+    "start:backfill:consensus": "tsc -b && yarn workspace @chain-analysis/ingest start -- backfill --chain=consensus",
+    "start:backfill:auto-evm": "tsc -b && yarn workspace @chain-analysis/ingest start -- backfill --chain=auto-evm",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "format": "prettier -w ."
   },
