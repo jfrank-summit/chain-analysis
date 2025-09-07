@@ -50,11 +50,15 @@ export const runBackfill = async (opts: {
     );
     const sql = `SELECT max(block_number) AS max_bn FROM read_parquet('${pattern.replace(/'/g, "''")}')`;
     try {
-      const rows: Array<{ max_bn: number | null }> = await new Promise((resolve, reject) =>
+      const rows: Array<{ max_bn: number | bigint | null }> = await new Promise((resolve, reject) =>
         (conn as any).all(sql, (err: any, res: any) => (err ? reject(err) : resolve(res))),
       );
-      const maxBn = rows?.[0]?.max_bn ?? null;
-      resumeFrom = maxBn == null ? undefined : maxBn + 1;
+      const raw = rows?.[0]?.max_bn;
+      const maxBn = raw == null ? null : typeof raw === "bigint" ? Number(raw) : Number(raw);
+      if (maxBn != null && !Number.isNaN(maxBn)) {
+        resumeFrom = maxBn + 1;
+        logger.info({ chain: opts.chain, resumeFrom }, "resuming backfill");
+      }
     } catch {
       // ignore: no files yet
     }
@@ -116,6 +120,8 @@ export const runBackfill = async (opts: {
         });
       }
     }
+    if (n % 500 === 0)
+      logger.info({ n, hash, parentHash, ts: new Date(ts).toISOString() }, "processed block");
     if (buffer.length >= cfg.WRITE_BATCH_ROWS) await flush();
     prevHash = hash;
     prevTs = ts;
