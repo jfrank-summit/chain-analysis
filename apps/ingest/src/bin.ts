@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { loadConfig, createLogger } from "@chain-analysis/config";
+import { createLogger } from "@chain-analysis/config";
 
 import { runBackfill } from "./ingest/backfill.js";
 import { startStreaming } from "./ingest/stream.js";

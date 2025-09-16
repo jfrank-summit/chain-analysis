@@ -10,7 +10,7 @@ import {
 } from "@chain-analysis/storage";
 
 import { enrichConsensusData } from "../chain/consensus/enrichment.js";
-import { getConsensusBlockHash } from "../chain/domain/mapping.js";
+import { enrichDomainData } from "../chain/domain/enrichment.js";
 
 type ChainId = "consensus" | "auto-evm";
 
@@ -107,7 +107,7 @@ export const runBackfill = async (opts: {
           bundle_count: bundleCount,
         });
       } else {
-        const consensusHash = await getConsensusBlockHash(api, hash);
+        const { consensusHash } = await enrichDomainData(api, hash);
         buffer.push({
           chain: "auto-evm",
           block_number: n,

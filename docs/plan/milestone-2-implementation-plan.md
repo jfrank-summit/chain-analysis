@@ -82,7 +82,7 @@ yarn workspace @chain-analysis/ingest backfill --chain=auto-evm
   - Inspect events/extrinsics for store segment headers; count related bundles.
   - Expose `{ contained_store_segment_headers: boolean, bundle_count: number }`.
 
-- Domain (`src/chain/domain/mapping.ts`):
+- Domain (`src/chain/domain/enrichment.ts`):
   - Resolve `consensus_block_hash` from domain header digests (preferred).
   - If unresolved, set `null` and log a reconciliation record (no KV in Phase 1).
 
