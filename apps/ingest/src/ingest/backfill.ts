@@ -112,7 +112,8 @@ export const runBackfill = async (opts: {
           bundle_count: bundleCount,
         });
       } else {
-        const { consensusHash } = await enrichDomainData(api, hash);
+        const header = block.block.header;
+        const { consensusHash } = await enrichDomainData(api, hash, { header });
         buffer.push({
           chain: "auto-evm",
           block_number: n,
