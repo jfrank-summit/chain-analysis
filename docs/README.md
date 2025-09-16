@@ -16,8 +16,7 @@ Purpose: Explore and implement analysis for a Substrate-based blockchain with a 
     - [Milestone 2](plan/milestones/milestone-2.md)
     - [Milestone 3](plan/milestones/milestone-3.md)
 - Runbooks
-  - [Consensus Stream](runbook/consensus-stream.md)
-  - [Backfill Consensus](runbook/backfill-consensus.md)
+  - [Backfill](runbook/backfill-consensus.md)
 
 ### Current Status
 
@@ -31,5 +30,5 @@ Purpose: Explore and implement analysis for a Substrate-based blockchain with a 
 
 ### Next Steps
 
-- Validate ADRs via a small POC: connect to RPC, stream headers, compute block intervals, and persist to the chosen storage.
+- Validate ADRs via a small POC: connect to RPC, backfill a small range, compute block intervals, and persist to the chosen storage.
 - Measure throughput, CPU, and write performance to confirm decisions (see ADRs for revisit criteria).

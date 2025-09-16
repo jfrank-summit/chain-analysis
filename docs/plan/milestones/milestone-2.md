@@ -7,19 +7,16 @@
 
 ### Acceptance Criteria
 
-- Streaming runs for both chains concurrently without missing data.
+- Backfill completes over a target range and produces Parquet for both chains.
 - Domain rows include `consensus_block_hash` (best-effort; unresolved are logged for reconciliation).
 - Consensus rows include `contained_store_segment_headers` and `bundle_count`.
-- Backfill completes over a target range and produces Parquet for both chains.
 
 ### Atomic Commit Plan
 
-1. refactor(pipeline): generalize single-chain stream to multi-chain
-   - add `src/ingest/stream.ts` orchestrator that spawns per-chain streamers
-   - factor common code into utilities; preserve immutability and functional style
+1. refactor(pipeline): backfill-only ingestion for both chains
+   - linear backfill walker per chain; preserve immutability and functional style
 
-2. feat(domain-stream): implement Auto-EVM streaming
-   - add `src/ingest/streamDomain.ts` mirroring consensus logic
+2. feat(domain-backfill): implement Auto-EVM backfill
    - add config env `AUTO_EVM_RPC_WS`, `K_AUTO_EVM`
 
 3. feat(consensus-enrichment): detect segment header presence and bundle count

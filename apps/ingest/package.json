@@ -16,7 +16,6 @@
     "build": "tsc -b",
     "dev": "DOTENV_CONFIG_PATH=../../.env tsx watch src/bin.ts",
     "start": "DOTENV_CONFIG_PATH=../../.env node --enable-source-maps dist/bin.js",
-    "dev:stream": "DOTENV_CONFIG_PATH=../../.env tsx src/bin.ts stream",
     "dev:backfill": "DOTENV_CONFIG_PATH=../../.env tsx src/bin.ts backfill"
   },
   "dependencies": {

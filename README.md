@@ -14,14 +14,14 @@ WRITE_BATCH_ROWS=5000
 WRITE_BATCH_MS=60000
 ```
 
-2. Install and run dev ingestor:
+2. Install and run dev backfill:
 
 ```
 yarn
-yarn dev
+yarn workspace @chain-analysis/ingest dev:backfill --chain=consensus
 ```
 
-The app subscribes to new heads on the consensus chain and writes Parquet files under `DATA_DIR/block_times/chain=consensus/date=YYYY-MM-DD/`.
+The app backfills consensus blocks and writes Parquet files under `DATA_DIR/block_times/chain=consensus/date=YYYY-MM-DD/`.
 
 ### Inspect Data with DuckDB
 
@@ -39,13 +39,13 @@ duckdb < scripts/duckdb/inspect_block_times.sql
 
 ### Project Structure
 
-- `apps/consensus-stream`: Streaming ingestor CLI
+- `apps/ingest`: Backfill ingestor CLI
 - `packages/config`: Env loading and validation
-- `packages/chain`: Polkadot.js utilities (connect, timestamp)
+- `packages/chain`: Polkadot.js utilities (connect, timestamp helpers)
 - `packages/storage`: DuckDB/Parquet writer
 - `docs/`: ADRs, specs, plans, runbooks
 
 ### Notes
 
-- Initial ingestion is head-forward (no backfill yet). Batch flush thresholds control Parquet file sizes.
+- Initial ingestion is backfill-only. Batch flush thresholds control Parquet file sizes.
 - Prefer Node 20 LTS for the DuckDB node binding.

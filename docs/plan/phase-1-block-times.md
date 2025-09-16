@@ -3,7 +3,7 @@
 ### Scope
 
 - Build an ingestion and analysis pipeline to compute inter-block time deltas for the Layer 1 consensus chain and the Auto-EVM domain.
-- Support both streaming (near-real-time) and backfill (historical) modes.
+- Support backfill (historical) mode. Streaming deferred.
 - Persist results to Parquet with DuckDB for analytics.
 
 ### Non-Goals
@@ -20,7 +20,6 @@
 
 ### Deliverables
 
-- Streaming ingestor that tails heads for both chains and writes deltas to Parquet partitions.
 - Backfill tool that processes a height range up to `tip - K` and writes Parquet.
 - Report tool that computes distribution stats (p50/p90/p99/max), rolling averages, outlier counts, and correlation analyses (segment header presence, domain vs consensus latency) over time windows.
 - Documentation: runbook, configuration reference, and validation checklist.
@@ -29,8 +28,7 @@
 
 - Sources: `@polkadot/api` connections to consensus and Auto-EVM RPCs.
 - Pipelines:
-  - Streaming: new heads → timestamp lookup → parent linkage check → delta compute → per-chain enrichment (segment header presence, bundle count, domain→consensus hash) → enqueue → batched write.
-  - Backfill: confirmed tip height (`tip - K`) → linear walk over height range → timestamp lookup per block → delta compute → enrichment → batched write.
+  - Backfill: confirmed tip height (`tip - K`) → linear walk over height range → timestamp lookup per block (prefer `timestamp.set` extrinsic, fallback to storage) → delta compute → enrichment → batched write.
 - Storage: Parquet, partitioned by `chain` and `date` (YYYY-MM-DD from block timestamp), queried via DuckDB.
 
 ### Data Model (block_times)
@@ -60,19 +58,11 @@ Partitioning:
 - Logging: `LOG_LEVEL` (debug|info|warn|error)
 - Output root: `DATA_DIR` (default `data/`)
 
-### Streaming Pipeline Details
+### Backfill Pipeline Details
 
-- Subscribe to new heads for each chain independently.
-- For each head H:
-  - Fetch `timestamp_ms` via `api.at(H.hash).query.timestamp.now()`.
-  - If parent hash matches the last seen head, compute `delta_ms` and perform enrichment:
-    - Consensus: detect `contained_store_segment_headers` and `bundle_count` by scanning events/extrinsics.
-    - Auto-EVM: resolve `consensus_block_hash` from domain header digest or a consensus-side mapping; if unresolved, set `null` and log for reconciliation.
-  - Enqueue a row with enrichment fields (chain-specific).
-  - If parent mismatch (reorg edge), skip emitting a delta for this head and reset linkage to H.
-- Batching strategy:
-  - Maintain an in-memory queue per partition (chain + current date).
-  - Flush when row count or timer threshold is hit.
+- Retrieve blocks via `api.rpc.chain.getBlock(hash)`; parse timestamp from the `timestamp.set` extrinsic when present; fallback to `query.timestamp.now().at(hash)` only if missing.
+- Detect `Subspace.SegmentHeaderStored`/`subspace.storeSegmentHeaders` and count bundles via `Domains.BundleStored`/`domains.submitBundle`.
+- Batch and flush to Parquet partitions by `chain` and `date`.
 
 ### Backfill Pipeline Details
 

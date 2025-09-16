@@ -2,7 +2,7 @@
 
 ### Overview
 
-- Consolidate streaming and backfill into a single app while enabling multi-chain (consensus + auto-evm) ingestion.
+- Consolidate backfill into a single app (consensus + auto-evm). Streaming deferred.
 - Add enrichment fields and K-confirmation backfill, partitioned Parquet writes with safe rotation.
 - Preserve functional style: prefer arrow functions, immutability, avoid classes.
 
@@ -10,7 +10,7 @@ See baseline goals and acceptance criteria in `docs/plan/milestones/milestone-2.
 
 ### Decisions
 
-- Single CLI app: `apps/ingest` with subcommands `stream` and `backfill`.
+- Single CLI app: `apps/ingest` with subcommand `backfill`.
 - Orchestration spawns per-chain workers; each worker maintains independent RPC connection, state, and queues.
 - Keep current packages; extend where needed:
   - `@chain-analysis/config`: add Auto-EVM + rotation + concurrency envs.
@@ -20,8 +20,7 @@ See baseline goals and acceptance criteria in `docs/plan/milestones/milestone-2.
 ### Target File/Module Layout (new)
 
 - `apps/ingest/`
-  - `src/bin.ts` — CLI entry (subcommands: `stream`, `backfill`)
-  - `src/ingest/stream.ts` — orchestrator running N chains concurrently
+  - `src/bin.ts` — CLI entry (subcommand: `backfill`)
   - `src/ingest/backfill.ts` — K-confirmed linear walker per chain
   - `src/ingest/queue.ts` — per-partition queues, flush policies, rotation
   - `src/chain/consensus/enrichment.ts` — segment header presence + bundle count
@@ -30,9 +29,6 @@ See baseline goals and acceptance criteria in `docs/plan/milestones/milestone-2.
 ### CLI Shape
 
 ```bash
-# Stream both chains concurrently (defaults from env)
-yarn workspace @chain-analysis/ingest stream --chains=consensus,auto-evm
-
 # Backfill consensus with explicit range and K
 yarn workspace @chain-analysis/ingest backfill --chain=consensus --start=100000 --end=120000 --K=64
 
@@ -66,11 +62,6 @@ yarn workspace @chain-analysis/ingest backfill --chain=auto-evm
 
 ### Orchestration and Workers
 
-- `stream.ts`:
-  - For each chain target, start a worker that subscribes to new heads, computes deltas, performs enrichment, and enqueues rows.
-  - Detect reorg edges (parent mismatch) and suppress delta emission for that head.
-  - Backpressure via `MAX_INFLIGHT_HEADERS` to bound concurrent `api.at(hash)` calls.
-
 - `backfill.ts`:
   - Determine tip; set confirmed head at `tip - K_<chain>`.
   - Walk `[start, end]` on the canonical path; compute deltas; add enrichment; batch writes.
@@ -95,7 +86,7 @@ yarn workspace @chain-analysis/ingest backfill --chain=auto-evm
 ### Migration
 
 1. Introduce `apps/ingest` and wire consensus-only path first (parity with current apps).
-2. Add domain worker; enable multi-chain streaming.
+2. Add domain worker.
 3. Implement enrichment and rotation.
 4. Backfill for both chains.
 
@@ -109,7 +100,7 @@ yarn workspace @chain-analysis/ingest backfill --chain=auto-evm
    - Add `AUTO_EVM_RPC_WS`, `K_AUTO_EVM`, `MAX_ROWS_PER_FILE`, `MAX_FILE_MINUTES`, `MAX_INFLIGHT_HEADERS`
    - Document in `docs/runbook/config.md`
 
-3. feat(domain-stream): add Auto-EVM streaming worker
+3. feat(domain-pipeline): add Auto-EVM backfill worker
    - Mirror consensus logic; emit rows for `chain = "auto-evm"`
 
 4. feat(consensus-enrichment): detect segment header presence + bundle count
@@ -124,8 +115,8 @@ yarn workspace @chain-analysis/ingest backfill --chain=auto-evm
 7. feat(backfill): support both chains with K confirmations
    - Inputs: chain, start, end|count, K; batching and partition-aware flushes
 
-8. docs(runbook): add domain and backfill instructions
-   - `docs/runbook/domain-stream.md`, `docs/runbook/backfill.md`
+8. docs(runbook): add backfill instructions
+   - `docs/runbook/backfill.md`
 
 9. qa(validation): add validation SQL and short sanity runs
    - `scripts/duckdb/validate_mapping.sql`, `scripts/duckdb/validate_deltas.sql`

@@ -2,7 +2,6 @@ import "dotenv/config";
 import { createLogger } from "@chain-analysis/config";
 
 import { runBackfill } from "./ingest/backfill.js";
-import { startStreaming } from "./ingest/stream.js";
 
 const parseArgs = (argv: string[]) => {
   const args = argv.slice(3);
@@ -21,20 +20,13 @@ const main = async () => {
   const cmd = process.argv[2];
   const flags = parseArgs(process.argv);
 
-  if (cmd === "stream") {
-    const chains =
-      typeof flags.chains === "string" ? flags.chains.split(",") : ["consensus", "auto-evm"]; // default both
-    await startStreaming({ chains: chains as ("consensus" | "auto-evm")[] });
-  } else if (cmd === "backfill") {
-    const chain = (flags.chain as string) ?? "consensus";
+  if (cmd === "backfill") {
     const start = flags.start ? Number(flags.start) : undefined;
     const end = flags.end ? Number(flags.end) : undefined;
     const K = flags.K ? Number(flags.K) : undefined;
     await runBackfill({ chain: chain as "consensus" | "auto-evm", start, end, K });
   } else {
-    logger.error(
-      "Usage: ingest <stream|backfill> [--chains=consensus,auto-evm] [--chain=...] [--start=...] [--end=...] [--K=...]",
-    );
+    logger.error("Usage: ingest backfill [--chain=...] [--start=...] [--end=...] [--K=...]");
     process.exit(1);
   }
 };
