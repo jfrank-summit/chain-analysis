@@ -21,6 +21,7 @@ const main = async () => {
   const flags = parseArgs(process.argv);
 
   if (cmd === "backfill") {
+    const chain = (flags.chain as string) ?? "consensus";
     const start = flags.start ? Number(flags.start) : undefined;
     const end = flags.end ? Number(flags.end) : undefined;
     const K = flags.K ? Number(flags.K) : undefined;

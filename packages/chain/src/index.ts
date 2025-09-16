@@ -53,3 +53,22 @@ export const getBlockTimestampMs = async (api: ApiPromise, hash: string): Promis
   const now = await (api.query.timestamp.now as any).at(hash);
   return now.toNumber();
 };
+
+// Extract timestamp from block extrinsics if available to avoid a separate state query.
+// Returns null if the timestamp extrinsic is not present.
+export const getTimestampFromExtrinsics = (extrinsics: any[]): number | null => {
+  const tsExtrinsic = extrinsics.find(
+    (e: any) => e?.method?.section === "timestamp" && e?.method?.method === "set",
+  );
+  if (!tsExtrinsic) return null;
+  const arg = tsExtrinsic.method?.args?.[0];
+  if (arg == null) return null;
+
+  const toNumber = (arg as any)?.toNumber as (() => number) | undefined;
+  if (typeof toNumber === "function") return toNumber.call(arg);
+
+  const toBigInt = (arg as any)?.toBigInt as (() => bigint) | undefined;
+  if (typeof toBigInt === "function") return Number(toBigInt.call(arg));
+
+  return typeof arg === "number" ? arg : null;
+};

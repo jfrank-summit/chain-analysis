@@ -2,7 +2,7 @@
 
 ### Goal
 
-Compute and analyze inter-block times for the consensus chain and the Auto-EVM domain, supporting both live streaming and historical backfills. Produce metrics (distributions, percentiles, jitter) and persist raw per-block deltas for flexible downstream analysis.
+Compute and analyze inter-block times for the consensus chain and the Auto-EVM domain using historical backfills. Produce metrics (distributions, percentiles, jitter) and persist raw per-block deltas for flexible downstream analysis.
 
 ### Definitions
 
@@ -25,7 +25,6 @@ Compute and analyze inter-block times for the consensus chain and the Auto-EVM d
 
 ### Canonical Chain Handling
 
-- Streaming: compute deltas from best heads; suppress deltas when a reorg is detected (parent mismatch) and resume on the new best chain.
 - Backfill: use N-block confirmations. Define a confirmation depth `K`; treat the chain state `K` blocks behind the current tip as confirmed for deterministic delta computation.
 
 ### Storage
@@ -50,7 +49,7 @@ Compute and analyze inter-block times for the consensus chain and the Auto-EVM d
      - Walk from an older starting point up to the confirmed head.
      - For each consecutive pair, compute `delta_ms` and batch writes.
 
-### Domain↔Consensus Mapping
+### Domain↔Consensus Mapping (future)
 
 - Read domain header digest logs (or a runtime API) that include the source consensus block hash/number for each domain block.
 - Resolve `consensus_block_hash` inline during streaming/backfill when possible. If unresolved, set `null` and log for later reconciliation (no KV in Phase 1).
@@ -68,13 +67,27 @@ const getBlockTimestampMs = async (api: ApiPromise, hash: string): Promise<numbe
   return Number(now.toBigInt()); // Moment is typically milliseconds
 };
 
-// Helpers (placeholders; implementations are chain-specific)
-const detectSegmentHeaderPresence = async (
+// Detect segment headers and count bundles for a consensus block.
+// Prefer pre-fetched events to avoid extra RPCs; otherwise query events.
+type Prefetched = { events?: any[] };
+const detectSegmentHeadersAndBundles = async (
   api: ApiPromise,
   hash: string,
+  prefetched?: Prefetched,
 ): Promise<{ contains: boolean; bundleCount: number }> => {
-  // Inspect events/extrinsics at block 'hash' to determine presence and count
-  return { contains: false, bundleCount: 0 };
+  const fromEvents = (events: any[]) => {
+    const contains = events.some(
+      ({ event }: any) => event.section === "subspace" && event.method === "SegmentHeaderStored",
+    );
+    const bundleCount = events.filter(
+      ({ event }: any) => event.section === "domains" && event.method === "BundleStored",
+    ).length;
+    return { contains, bundleCount };
+  };
+  if (prefetched?.events?.length) return fromEvents(prefetched.events);
+  const at = await api.at(hash);
+  const events = await at.query.system.events();
+  return fromEvents(events as any[]);
 };
 
 const resolveConsensusHashForDomain = async (
@@ -85,49 +98,7 @@ const resolveConsensusHashForDomain = async (
   return null;
 };
 
-// Streaming outline (single chain)
-const streamDeltas = async (api: ApiPromise, chain: string) => {
-  let last: { hash: string; ts: number } | null = null;
-  await api.rpc.chain.subscribeNewHeads(async (head) => {
-    const hash = head.hash.toHex();
-    const ts = await getBlockTimestampMs(api, hash);
-    if (last) {
-      const parentHash = head.parentHash.toHex();
-      if (parentHash === last.hash) {
-        const delta = ts - last.ts;
-        const base = {
-          chain,
-          block_number: head.number.toNumber(),
-          hash,
-          parent_hash: parentHash,
-          timestamp_ms: ts,
-          delta_since_parent_ms: delta,
-          ingestion_ts_ms: Date.now(),
-        };
-        if (chain === "consensus") {
-          const { contains, bundleCount } = await detectSegmentHeaderPresence(api, hash);
-          enqueueForPersist({
-            ...base,
-            contained_store_segment_headers: contains,
-            bundle_count: bundleCount,
-          });
-        } else if (chain === "auto-evm") {
-          const consensusHash = await resolveConsensusHashForDomain(api, hash);
-          enqueueForPersist({
-            ...base,
-            consensus_block_hash: consensusHash,
-          });
-        } else {
-          enqueueForPersist(base);
-        }
-      } else {
-        // Reorg edge: parent mismatch; skip delta emit for this head
-        // Optionally emit a diagnostic record if needed by the pipeline
-      }
-    }
-    last = { hash, ts };
-  });
-};
+// Streaming is out of scope; ingestion is performed via backfill only in Phase 1.
 ```
 
 ### Backfill Outline

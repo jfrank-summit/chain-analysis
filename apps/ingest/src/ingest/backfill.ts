@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { connect, getBlockTimestampMs } from "@chain-analysis/chain";
+import { connect, getBlockTimestampMs, getTimestampFromExtrinsics } from "@chain-analysis/chain";
 import { loadConfig, createLogger } from "@chain-analysis/config";
 import {
   openDuckDb,
@@ -82,10 +82,11 @@ export const runBackfill = async (opts: {
 
   for (let n = effectiveStart; n <= end; n += 1) {
     const blockHash = await api.rpc.chain.getBlockHash(n);
-    const header = await api.rpc.chain.getHeader(blockHash);
-    const hash = header.hash.toHex();
-    const parentHash = header.parentHash.toHex();
-    const ts = await getBlockTimestampMs(api, hash);
+    const block = await api.rpc.chain.getBlock(blockHash);
+    const hash = blockHash.toHex();
+    const parentHash = block.block.header.parentHash.toHex();
+    const extrinsics = block.block.extrinsics as any[];
+    const ts = getTimestampFromExtrinsics(extrinsics) ?? (await getBlockTimestampMs(api, hash));
 
     if (prevHash && parentHash !== prevHash) {
       logger.warn(
@@ -94,7 +95,11 @@ export const runBackfill = async (opts: {
       );
     } else if (prevHash && prevTs !== null) {
       if (opts.chain === "consensus") {
-        const { containsSegmentHeaders, bundleCount } = await enrichConsensusData(api, hash);
+        const at = await api.at(hash);
+        const events = await at.query.system.events();
+        const { containsSegmentHeaders, bundleCount } = await enrichConsensusData(api, hash, {
+          events,
+        });
         buffer.push({
           chain: "consensus",
           block_number: n,
