@@ -9,6 +9,7 @@ export type BlockTimeRow = {
   hash: string;
   parent_hash: string;
   timestamp_ms: number;
+  timestamp_utc: string;
   delta_since_parent_ms: number;
   ingestion_ts_ms: number;
 };
@@ -30,8 +31,9 @@ export const ensureDir = (dir: string) => {
 
 export const openDuckDb = (dataDir: string) => {
   ensureDir(dataDir);
-  const dbPath = path.join(dataDir, "duckdb.db");
-  const db = new Database.Database(dbPath);
+  // Use an in-memory DuckDB instance; we only need it to run COPY/SELECT over files
+  // and avoid cross-process file locking on a shared .db file.
+  const db = new Database.Database(":memory:");
   const conn = db.connect();
   return { db, conn };
 };
@@ -53,6 +55,7 @@ export const writeBlockTimesBatch = async (
     "hash",
     "parent_hash",
     "timestamp_ms",
+    "timestamp_utc",
     "delta_since_parent_ms",
     "ingestion_ts_ms",
   ];
@@ -71,6 +74,7 @@ export const writeBlockTimesBatch = async (
       escape((r as any).hash),
       escape((r as any).parent_hash),
       (r as any).timestamp_ms,
+      escape((r as any).timestamp_utc ?? new Date((r as any).timestamp_ms).toISOString()),
       (r as any).delta_since_parent_ms,
       (r as any).ingestion_ts_ms,
     ];
