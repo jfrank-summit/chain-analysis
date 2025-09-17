@@ -39,7 +39,7 @@ export const openDuckDb = (dataDir: string) => {
 export const writeBlockTimesBatch = async (
   conn: Database.Connection,
   dataDir: string,
-  rows: BlockTimeRow[],
+  rows: Array<BlockTimeRow | ConsensusBlockTimeRow | AutoEvmBlockTimeRow>,
 ) => {
   if (rows.length === 0) return;
   const chain = rows[0].chain;
@@ -47,7 +47,7 @@ export const writeBlockTimesBatch = async (
   const outDir = path.join(dataDir, "block_times", `chain=${chain}`, `date=${date}`);
   ensureDir(outDir);
 
-  const header = [
+  const headerCols = [
     "chain",
     "block_number",
     "hash",
@@ -55,20 +55,35 @@ export const writeBlockTimesBatch = async (
     "timestamp_ms",
     "delta_since_parent_ms",
     "ingestion_ts_ms",
-  ].join(",");
+  ];
+  if (chain === "consensus") {
+    headerCols.push("contained_store_segment_headers", "bundle_count");
+  } else if (chain === "auto-evm") {
+    headerCols.push("consensus_block_hash");
+  }
+  const header = headerCols.join(",");
 
   const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-  const csvLines = rows.map((r) =>
-    [
+  const csvLines = rows.map((r) => {
+    const base = [
       escape(r.chain),
-      r.block_number,
-      escape(r.hash),
-      escape(r.parent_hash),
-      r.timestamp_ms,
-      r.delta_since_parent_ms,
-      r.ingestion_ts_ms,
-    ].join(","),
-  );
+      (r as any).block_number,
+      escape((r as any).hash),
+      escape((r as any).parent_hash),
+      (r as any).timestamp_ms,
+      (r as any).delta_since_parent_ms,
+      (r as any).ingestion_ts_ms,
+    ];
+    if (chain === "consensus") {
+      const contains = (r as any).contained_store_segment_headers ?? false;
+      const bundles = (r as any).bundle_count ?? 0;
+      base.push(String(contains), String(bundles));
+    } else if (chain === "auto-evm") {
+      const cHash = (r as any).consensus_block_hash ?? "";
+      base.push(cHash ? escape(String(cHash)) : "");
+    }
+    return base.join(",");
+  });
 
   const tmpCsv = path.join(outDir, `.tmp-${process.pid}-${Date.now()}.csv`);
   const content = `${header}\n${csvLines.join("\n")}`;
