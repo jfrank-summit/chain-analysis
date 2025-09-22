@@ -34,40 +34,66 @@
 
 - Intuition: domain block height increments only on the subset of consensus blocks that are "bundle-carrying"; if fewer blocks carry bundles, the domain clock ticks less often, stretching the average.
 
-### Why p < 1?
+### Per-slot vs per-block probability
+
+- Consensus produces a block in a slot with probability `s = SLOT_PROBABILITY` (currently `s = 1/6`).
+- Let `p_slot` be the probability that a slot has at least one eligible bundle for this domain.
+- The fraction of consensus blocks that contain at least one bundle is:
+  - `p_block = p_slot / (s + (1 - s) * p_slot)`
+- Small-`p_slot` approximation: `p_block ≈ p_slot / s` (≈ 6× boost when `s = 1/6`). As `p_slot → 1`, `p_block → 1`.
+- When using `E[D] ≈ E[C] / p`, set `p = p_block`.
+- Equal-stake quick path with scalar `b` for `bundle_slot_probability`:
+  - `p_slot ≈ 1 - e^-b`
+  - `p_block ≈ (1 - e^-b) / (s + (1 - s) * (1 - e^-b))`
+- Example: `s = 1/6`, `p_slot = 0.20` → `p_block ≈ 0.20 / (1/6 + (5/6)*0.20) ≈ 0.60`.
+
+### Why p_block < 1? (and p_slot < 1)
 
 - Bundle election is probabilistic and primarily governed by the domain’s `bundle_slot_probability` and operator stakes.
 - Even with `bundle_slot_probability = 1` and 100% operator liveness, independent per-operator VRF draws imply a non‑zero chance that no one wins in a slot. Let stake fractions be `s_i` (sum to 1). Then:
   - no winner probability: `product_i (1 - s_i)`
-  - at least one winner: `p = 1 - product_i (1 - s_i)` (so `p < 1` unless one operator has all stake)
-  - equal stakes (`N` operators): `p ≈ 1 - (1 - 1/N)^N ≈ 1 - e^-1 ≈ 0.632`
+  - per-slot success (at least one eligible bundle): `p_slot = 1 - product_i (1 - s_i)` (so `p_slot < 1` unless one operator has all stake)
+  - equal stakes (`N` operators): `p_slot ≈ 1 - (1 - 1/N)^N ≈ 1 - e^-1 ≈ 0.632`
+- Mapping to per-block with consensus slot probability `s`: `p_block = p_slot / (s + (1 - s) * p_slot)` ⇒ `p_block < 1` unless `p_slot = 1`.
 
 Key parameters (where to look in code):
 
 - Bundle election probability:
   - Chain spec/runtime: `bundle_slot_probability` (keep aligned with consensus `SlotProbability`)
 
-### Sizing `bundle_slot_probability` for a target p
+### Sizing `bundle_slot_probability` for a target p_block
 
-- Exact (with known stake fractions `s_i`, sum to 1):
-  - Define a per-operator win factor `b` (the scalar value of `bundle_slot_probability`).
-  - Per-operator win probability is approximately `min(1, b * s_i)`.
-  - Slot success probability:
-    - `p(b) = 1 - product_i (1 - min(1, b * s_i))`.
-  - Pick a target `p*` (e.g., 0.95) and solve for the smallest `b` with `p(b) ≥ p*` (binary search works well).
+- Step 1: Convert the per-block target to a per-slot target using consensus slot probability `s`:
+  - `p_slot* = (s * p_block*) / (1 - (1 - s) * p_block*)`
+- Step 2: Solve for `b` that achieves `p_slot*`.
+  - Exact (with known stake fractions `s_i`, sum to 1):
+    - Define a per-operator win factor `b` (the scalar value of `bundle_slot_probability`).
+    - Per-operator win probability is approximately `min(1, b * s_i)`.
+    - Slot success probability:
+      - `p_slot(b) = 1 - product_i (1 - min(1, b * s_i))`.
+    - Pick the smallest `b` with `p_slot(b) ≥ p_slot*` (binary search works well).
+  - Equal-stake approximation (quick back-of-the-envelope):
+    - For `N` similar operators (`s_i ≈ 1/N`) and `b/N << 1`,
+      - `p_slot(b) ≈ 1 - (1 - b/N)^N ≈ 1 - e^-b`.
+    - Closed-form sizing after the conversion: `b ≈ -ln(1 - p_slot*)`.
 
-- Equal-stake approximation (quick back-of-the-envelope):
-  - For `N` similar operators (`s_i ≈ 1/N`) and `b/N << 1`,
-    - `p(b) ≈ 1 - (1 - b/N)^N ≈ 1 - e^-b`.
-  - Closed-form sizing: `b ≈ -ln(1 - p*)`.
-    - `p* = 0.90 → b ≈ 2.30`
-    - `p* = 0.95 → b ≈ 2.99`
-    - `p* = 0.98 → b ≈ 3.91`
-    - `p* = 0.99 → b ≈ 4.61`
+- Quick lookup (assuming `s = 1/6`):
+  - `p_block* = 0.50 → p_slot* ≈ 0.1429 → b ≈ 0.154`
+  - `p_block* = 0.60 → p_slot* = 0.20 → b ≈ 0.223`
+  - `p_block* = 0.70 → p_slot* ≈ 0.28 → b ≈ 0.329`
+  - `p_block* = 0.75 → p_slot* ≈ 0.3333 → b ≈ 0.405`
+  - `p_block* = 0.80 → p_slot* = 0.40 → b ≈ 0.511`
+  - `p_block* = 0.85 → p_slot* ≈ 0.4857 → b ≈ 0.665`
+  - `p_block* = 0.90 → p_slot* = 0.60 → b ≈ 0.916`
+  - `p_block* = 0.92 → p_slot* ≈ 0.6571 → b ≈ 1.071`
+  - `p_block* = 0.95 → p_slot* = 0.76 → b ≈ 1.427`
+  - `p_block* = 0.98 → p_slot* ≈ 0.891 → b ≈ 2.214`
+  - `p_block* = 0.99 → p_slot* ≈ 0.943 → b ≈ 2.862`
 
 Notes:
 
-- The equal-stake formula is a convenience; use the exact formula with your live stake vector for production sizing.
+- The equal-stake formula is a convenience; use the exact formula with your live stake vector for production sizing (convert a `p_block*` to `p_slot*` first).
+- With `s = 1/6` and equal stakes, `b ≤ 1` caps `p_slot ≈ 1 - e^-1 ≈ 0.632`, which maps to `p_block ≈ 0.91`. Higher `p_block` targets require skewed stake or relaxing `b > 1`.
 - Increasing `b` increases expected winners per slot (roughly proportional), so expect more bundles per consensus block.
 
 ### Current runtime constraints (and what would need to change)
