@@ -23,6 +23,22 @@ export type AutoEvmBlockTimeRow = BlockTimeRow & {
   consensus_block_hash: string | null;
 };
 
+export type OfflineOperatorEventRow = {
+  block_number: number;
+  block_hash: string;
+  timestamp_ms: number;
+  timestamp_utc: string;
+  domain_id: number;
+  epoch_index: number;
+  operator_id: number;
+  submitted_bundles: number;
+  expected_bundles: number;
+  min_required_bundles: number;
+  shortfall: number;
+  shortfall_pct: number;
+  ingestion_ts_ms: number;
+};
+
 export const ensureDir = (dir: string) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
