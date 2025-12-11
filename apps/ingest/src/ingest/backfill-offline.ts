@@ -132,7 +132,7 @@ export const runOfflineBackfill = async (opts: { start?: number; end?: number })
       "epoch transition block",
     );
 
-    if (buffer.length >= 100) await flush();
+    if (buffer.length >= 10) await flush();
   }
 
   await flush();
