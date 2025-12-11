@@ -23,6 +23,22 @@ export type AutoEvmBlockTimeRow = BlockTimeRow & {
   consensus_block_hash: string | null;
 };
 
+export type OfflineOperatorEventRow = {
+  block_number: number;
+  block_hash: string;
+  timestamp_ms: number;
+  timestamp_utc: string;
+  domain_id: number;
+  epoch_index: number;
+  operator_id: number;
+  submitted_bundles: number;
+  expected_bundles: number;
+  min_required_bundles: number;
+  shortfall: number;
+  shortfall_pct: number;
+  ingestion_ts_ms: number;
+};
+
 export const ensureDir = (dir: string) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -88,6 +104,75 @@ export const writeBlockTimesBatch = async (
     }
     return base.join(",");
   });
+
+  const tmpCsv = path.join(outDir, `.tmp-${process.pid}-${Date.now()}.csv`);
+  const content = `${header}\n${csvLines.join("\n")}`;
+  fs.writeFileSync(tmpCsv, content, { encoding: "utf8" });
+
+  const outFile = path.join(outDir, `part-${Date.now()}.parquet`);
+  try {
+    const tmpCsvAbs = path.resolve(tmpCsv);
+    const outFileAbs = path.resolve(outFile);
+    const esc = (p: string) => p.replace(/'/g, "''");
+    const sql = `COPY (SELECT * FROM read_csv_auto('${esc(tmpCsvAbs)}', HEADER=TRUE)) TO '${esc(outFileAbs)}' (FORMAT PARQUET)`;
+    await new Promise<void>((resolve, reject) =>
+      conn.run(sql, (err) => (err ? reject(err) : resolve())),
+    );
+  } finally {
+    try {
+      fs.unlinkSync(tmpCsv);
+    } catch {
+      // ignore
+    }
+  }
+};
+
+export const writeOfflineOperatorsBatch = async (
+  conn: Database.Connection,
+  dataDir: string,
+  rows: OfflineOperatorEventRow[],
+) => {
+  if (rows.length === 0) return;
+
+  const date = new Date(rows[0].timestamp_ms).toISOString().slice(0, 10);
+  const outDir = path.join(dataDir, "offline_operators", `date=${date}`);
+  ensureDir(outDir);
+
+  const headerCols = [
+    "block_number",
+    "block_hash",
+    "timestamp_ms",
+    "timestamp_utc",
+    "domain_id",
+    "epoch_index",
+    "operator_id",
+    "submitted_bundles",
+    "expected_bundles",
+    "min_required_bundles",
+    "shortfall",
+    "shortfall_pct",
+    "ingestion_ts_ms",
+  ];
+  const header = headerCols.join(",");
+
+  const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+  const csvLines = rows.map((r) =>
+    [
+      r.block_number,
+      escape(r.block_hash),
+      r.timestamp_ms,
+      escape(r.timestamp_utc),
+      r.domain_id,
+      r.epoch_index,
+      r.operator_id,
+      r.submitted_bundles,
+      r.expected_bundles,
+      r.min_required_bundles,
+      r.shortfall,
+      r.shortfall_pct.toFixed(2),
+      r.ingestion_ts_ms,
+    ].join(","),
+  );
 
   const tmpCsv = path.join(outDir, `.tmp-${process.pid}-${Date.now()}.csv`);
   const content = `${header}\n${csvLines.join("\n")}`;

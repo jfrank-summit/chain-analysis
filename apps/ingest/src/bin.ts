@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { createLogger } from "@chain-analysis/config";
 
+import { runOfflineBackfill } from "./ingest/backfill-offline.js";
 import { runBackfill } from "./ingest/backfill.js";
 
 const parseArgs = (argv: string[]) => {
@@ -26,8 +27,15 @@ const main = async () => {
     const end = flags.end ? Number(flags.end) : undefined;
     const K = flags.K ? Number(flags.K) : undefined;
     await runBackfill({ chain: chain as "consensus" | "auto-evm", start, end, K });
+  } else if (cmd === "backfill-offline") {
+    const start = flags.start ? Number(flags.start) : undefined;
+    const end = flags.end ? Number(flags.end) : undefined;
+    await runOfflineBackfill({ start, end });
   } else {
-    logger.error("Usage: ingest backfill [--chain=...] [--start=...] [--end=...] [--K=...]");
+    logger.error(
+      "Usage: ingest backfill [--chain=...] [--start=...] [--end=...] [--K=...]\n" +
+        "       ingest backfill-offline [--start=...] [--end=...]",
+    );
     process.exit(1);
   }
 };
