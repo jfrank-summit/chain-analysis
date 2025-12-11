@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { createLogger } from "@chain-analysis/config";
 
-import { runBackfill } from "./ingest/backfill.js";
 import { runOfflineBackfill } from "./ingest/backfill-offline.js";
+import { runBackfill } from "./ingest/backfill.js";
 
 const parseArgs = (argv: string[]) => {
   const args = argv.slice(3);
